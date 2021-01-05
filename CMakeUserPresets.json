@@ -1,0 +1,39 @@
+{
+    "version": 1,
+    "configurePresets": [
+        {
+            "name": "default-toolchain",
+            "inherits": [
+                "default"
+            ],
+            "generator": "Ninja",
+            "cacheVariables": {
+                "CMAKE_TOOLCHAIN_FILE": "D:/git-repos/rainmeter-plugins/rainmeter-python-plugin/mcppt-toolchain.cmake"
+            }
+        },
+        {
+            "name": "x64-windows",
+            "inherits": [
+                "default-toolchain"
+            ],
+            "displayName": "x64-windows",
+            "description": "MCPPT Preset for x64-windows",
+            "binaryDir": "${sourceDir}/b/x64-windows",
+            "cacheVariables": {
+                "VCPKG_TARGET_TRIPLET": "x64-windows"
+            }
+        },
+        {
+            "name": "x64-windows-static",
+            "inherits": [
+                "default-toolchain"
+            ],
+            "displayName": "x64-windows-static",
+            "description": "MCPPT Preset for x64-windows-static",
+            "binaryDir": "${sourceDir}/b/x64-windows-static",
+            "cacheVariables": {
+                "VCPKG_TARGET_TRIPLET": "x64-windows-static"
+            }
+        }
+    ]
+}

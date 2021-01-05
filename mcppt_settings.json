@@ -1,0 +1,26 @@
+{
+    "common": {
+        "template_dir": "D:\\tools\\mcppt\\new_cmake_templates",
+        "has_been_installed": false
+    },
+    "cmake": {
+        "exec": "cmake"
+    },
+    "vcpkg": {
+        "exec": "vcpkg",
+        "use_external": false,
+        "path": "D:\\tools\\mcppt\\vcpkg",
+        "repo_uri": "https://github.com/microsoft/vcpkg.git",
+        "disable_metrics": true
+    },
+    "git": {
+        "exec": "git"
+    },
+    "deploy.py": {
+        "plugin-build-out-path": "./build-Debug/bin/RmPythonPlugin.dll",
+        "plugin-build-symbols-path": "./build-Debug/bin/RmPythonPlugin.pdb",
+        "plugin-loader-scripts-path": "./src/py/",
+        "rainmeter-plugin-path": "./Rainmeter-Testing/Plugins/",
+        "rainmeter-root-path": "./Rainmeter-Testing"
+    }
+}
