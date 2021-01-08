@@ -7,13 +7,16 @@
 #include "main.h"
 
 #define PYTHON_HOME "PythonHome"
-#define PYTHON_LOADER "python_loader.py"
+#define PYTHON_LOADER "measure_host.py"
+#define PY_HOST_CLASS L"MeasureHost"
 
 struct PythonInfo {
     bool plugin_initialized = false;
     unsigned measures_loaded = 0;
 
-    PyObject* controller = NULL;
+    std::filesystem::path exec_path;
+
+    PyObject* loader = NULL;
     PyObject* global_rm;
 };
 

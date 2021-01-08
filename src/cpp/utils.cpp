@@ -26,7 +26,7 @@ wstring to_wstring(std::string str) {
 
 
 // path to Rainmeter.exe
-string get_exec_path() {
+string get_rm_path_string() {
     TCHAR execPath[MAX_PATH];
 
     if( !GetModuleFileNameA( NULL, execPath, MAX_PATH ) )
@@ -37,15 +37,38 @@ string get_exec_path() {
     return execPath;
 }
 
+path get_rm_path() {
+    return ((path)get_rm_path_string());
+}
+
+
+path get_rm_dir_path() {
+    return ((path)get_rm_path_string()).remove_filename();
+}
+
 path get_python_interpreter_home() {
-    path rmPath = ((path)get_exec_path()).remove_filename();
+    path rmPath = get_rm_dir_path();
 
     rmPath.append(PYTHON_HOME);
     return rmPath;
 }
 
+path get_python_interpreter_exec() {
+    path rmPath = get_python_interpreter_home();
+
+    rmPath.append("python.exe");
+    return rmPath;
+}
+
+path get_python_interpreter_wexec() {
+    path rmPath = get_python_interpreter_home();
+
+    rmPath.append("pythonw.exe");
+    return rmPath;
+}
+
 path get_python_loader_home() {
-    path rmPath = ((path)get_exec_path()).remove_filename();
+    path rmPath = get_rm_dir_path();
 
     rmPath.append(PYTHON_LOADER);
     return rmPath;

@@ -1,3 +1,4 @@
 /.vscode/
 /build-*/
 /Rainmeter-Testing/
+**/__pycache__/

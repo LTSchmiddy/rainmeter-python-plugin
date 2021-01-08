@@ -16,25 +16,40 @@ PythonInfo pyInfo;
 PyThreadState *mainThreadState = NULL;
 
 void InitializePython() {
-    wstring debugDefaultHome = to_wstring(get_python_interpreter_home().u8string()).c_str();
-	string defaultHome = get_python_interpreter_home().u8string();
+	path interpHome = get_python_interpreter_home();
+    wstring debugDefaultHome = to_wstring(interpHome.u8string());
+	string defaultHome = interpHome.u8string();
 	RmLog(LOG_DEBUG, debugDefaultHome.c_str());
 
-	const char* path = defaultHome.c_str();
+	const char* homePathShort = defaultHome.c_str();
 	size_t len = defaultHome.length() - 1;
 
-	wchar_t* homePath = (wchar_t*) Py_DecodeLocale(path, &len);
+	wstring homePath = Py_DecodeLocale(homePathShort, &len);
 	// Uses the default Python Installation:
-	Py_SetPythonHome(homePath);
+	Py_SetPythonHome(homePath.c_str());
 
-	// RmLog(LOG_DEBUG, L"HOME SET");
+	// path searchPathLib = get_python_interpreter_home();
+	// searchPathLib.append("python.zip");
+	// path searchPathDLLs = get_python_interpreter_home();
+	// searchPathDLLs.append("DLLs");
+
+	// path rm_dir_path = get_rm_dir_path();
+
+	// wstring pySearchPath = 
+	// 	wstring(Py_GetPath()) + L";" +
+	// 	to_wstring(interpHome.u8string()) + L";" + 
+	// 	to_wstring(searchPathLib.u8string()) + L";" + 
+	// 	to_wstring(searchPathDLLs.u8string())+ L";" + 
+	// 	to_wstring(rm_dir_path.u8string());
+
+	// Py_SetPath(pySearchPath.c_str());
+	// RmLog(LOG_DEBUG, Py_GetPath());
 	Py_Initialize();
 	mainThreadState = PyThreadState_Get();
 
 	wstring loader_path = to_wstring(get_python_loader_home().u8string());
 	RmLog(LOG_DEBUG, loader_path.c_str());
-	pyInfo.controller = LoadObjectFromScript(loader_path.c_str(), PYTHON_LOADER, L"ModuleLoader");
-
+	pyInfo.loader = LoadObjectFromScript(loader_path.c_str(), PYTHON_LOADER, PY_HOST_CLASS);
 
     pyInfo.plugin_initialized = true;
 }
@@ -42,7 +57,9 @@ void InitializePython() {
 void PyController_Init(void* rm){
 
 	pyInfo.global_rm = CreateRainmeterObject(rm);
-	PyObject *resultObj = PyObject_CallMethod(pyInfo.controller, "setup", "O", pyInfo.global_rm);
+	pyInfo.exec_path = get_python_interpreter_exec();
+
+	PyObject *resultObj = PyObject_CallMethod(pyInfo.loader, "setup", "Os", pyInfo.global_rm, pyInfo.exec_path.u8string().c_str());
 	if (resultObj != NULL)
 	{
 		Py_DECREF(resultObj);
@@ -70,7 +87,6 @@ PyObject* LoadObjectFromScript(LPCWSTR scriptPath, char* fileName, LPCWSTR class
 {
 	try 
 	{
-		
 		FILE* f = _Py_wfopen(scriptPath, L"r");
 		if (f == NULL)
 		{
@@ -81,6 +97,7 @@ PyObject* LoadObjectFromScript(LPCWSTR scriptPath, char* fileName, LPCWSTR class
 		PyObject *result = PyRun_FileEx(f, fileName, Py_file_input, globals, globals, 1);
 		if (result == NULL)
 		{
+			PyErr_Print();
 			throw L"Error loading Python script";
 		}
 
@@ -106,6 +123,10 @@ PyObject* LoadObjectFromScript(LPCWSTR scriptPath, char* fileName, LPCWSTR class
 	}
 }
 
+
+
+
+/* Old. Will be implementing a new measure-loading system in the interpreter itself:
 void LoadMeasureScript(LPCWSTR scriptPath, char* fileName, LPCWSTR className, Measure* measure)
 {
 	try 
@@ -147,3 +168,4 @@ void LoadMeasureScript(LPCWSTR scriptPath, char* fileName, LPCWSTR className, Me
 		measure->getStringResult = error;
 	}
 }
+*/

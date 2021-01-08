@@ -15,7 +15,6 @@ if os.path.isfile(settings["plugin-build-symbols-path"]):
         settings["rainmeter-plugin-path"]
     )
 
-
 def recursive_overwrite(src, dest, ignore=None):
     if os.path.isdir(src):
         if not os.path.isdir(dest):
@@ -34,5 +33,6 @@ def recursive_overwrite(src, dest, ignore=None):
         shutil.copyfile(src, dest)
 
 recursive_overwrite(settings["plugin-loader-scripts-path"], settings["rainmeter-root-path"])
+recursive_overwrite(settings["rainmeter-skin-src-path"], settings["rainmeter-skin-dest-path"])
 
 # input("Press Enter to close...")

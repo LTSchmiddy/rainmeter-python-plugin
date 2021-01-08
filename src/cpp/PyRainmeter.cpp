@@ -123,7 +123,7 @@ static PyObject *Rainmeter_RmLog(RainmeterObject *self, PyObject *args)
 	PyObject *message;
 	PyArg_ParseTuple(args, "iU", &level, &message);
 	wchar_t *messageStr = PyUnicode_AsWideCharString(message, NULL);
-	RmLog(level, messageStr);
+	RmLog(self->rm, level, messageStr);
 	PyMem_Free(messageStr);
 	Py_INCREF(Py_None);
 	return Py_None;

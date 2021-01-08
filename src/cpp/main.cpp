@@ -40,29 +40,18 @@ Measure::Measure() {
 	measureObject = NULL;
 	getStringResult = NULL;
 	mainThreadState = NULL;
+	lastRm = NULL;
 }
-
-// PyThreadState *mainThreadState = NULL;
-
-
 
 PLUGIN_EXPORT void Initialize(void** data, void* rm)
 {
-	// LPCWSTR pythonHome = RmReadString(rm, L"PythonHome", NULL, FALSE);
-	// if (pythonHome != NULL)
-	// {
-	// 	Py_SetPythonHome((wchar_t*) pythonHome);
-	// }
-	// Py_Initialize();
 	bool should_save = false;
 	if (!pyInfo.plugin_initialized){
 		InitializePython();
 		should_save = true;
 	}
-	// PyEval_InitThreads();
-	// mainThreadState = PyThreadState_Get();
+
 	Measure *measure = new Measure;
-	// measure->mainThreadState = Py_NewInterpreter();
 	measure->mainThreadState = mainThreadState;
 	*data = measure;
 
@@ -76,38 +65,60 @@ PLUGIN_EXPORT void Initialize(void** data, void* rm)
 
 PLUGIN_EXPORT void Reload(void* data, void* rm, double* maxValue)
 {
+	
 	Measure *measure = (Measure*) data;
+	PyObject *rainmeterObject = NULL;
+	measure->lastRm = NULL;
 	// PyEval_RestoreThread(mainThreadState);
 	PyEval_RestoreThread(measure->mainThreadState);
 
 	if (pyInfo.global_rm == NULL) {
 		RmLog(LOG_DEBUG, L"INIT LOADER");
 		PyController_Init(rm);
+		rainmeterObject = pyInfo.global_rm;
+	} else {
+		rainmeterObject = CreateRainmeterObject(rm);
+		pyInfo.global_rm = rainmeterObject;
 	}
 
 	if (measure->measureObject == NULL)
 	{
-		LPCWSTR scriptPath = RmReadPath(rm, L"ScriptPath", L"default.py");
-		wchar_t scriptBaseName[_MAX_FNAME];
-		wchar_t scriptExt[_MAX_EXT];
-		wchar_t scriptDir[_MAX_DIR];
-		_wsplitpath_s(scriptPath, NULL, 0, scriptDir, _MAX_DIR, scriptBaseName, _MAX_FNAME, scriptExt, _MAX_EXT);
-		AddDirToPath(scriptDir);
+		if (rainmeterObject == NULL){
+			rainmeterObject = CreateRainmeterObject(rm);
+		}
 
-		wchar_t fileName[_MAX_FNAME + 1 + _MAX_EXT];
-		lstrcpyW(fileName, scriptBaseName);
-		lstrcatW(fileName, L".");
-		lstrcatW(fileName, scriptExt);
-		char fileNameMb[_MAX_FNAME + 1 + _MAX_EXT];
-		wcstombs_s(NULL, fileNameMb, sizeof(fileNameMb), fileName, sizeof(fileName));
-		LPCWSTR className = RmReadString(rm, L"ClassName", L"Measure", FALSE);
-		LoadMeasureScript(scriptPath, fileNameMb, className, measure);
+		// LPCWSTR classPath = RmReadPath(rm, L"ClassPath", L"");
+		// LPCWSTR scriptPath = RmReadPath(rm, L"ModulePath", L"default.py");
+		// LPCWSTR className = RmReadString(rm, L"ClassName", L"Measure", FALSE);
+		
+		// PyObject* classPathObj = PyUnicode_FromWideChar(classPath, -1);
+		// PyObject* scriptPathObj = PyUnicode_FromWideChar(scriptPath, -1);
+		// PyObject* classNameObj = PyUnicode_FromWideChar(className, -1);
+
+		PyObject *resultObj = PyObject_CallMethod(pyInfo.loader, "loadMeasure", "O", rainmeterObject);
+		// PyObject *resultObj = PyObject_CallMethod(pyInfo.loader, "loadMeasure", "OOO", classPathObj, scriptPathObj, className);
+
+		if (resultObj != NULL)
+		{
+			measure->measureObject = resultObj;
+		}
+		else
+		{
+			PyErr_Print();
+			PyErr_Clear();
+		}
+		// Py_DECREF(scriptPathObj);
+		// Py_DECREF(classNameObj);
+		
 	}
 
 	if (measure->measureObject != NULL)
 	{
-		PyObject *rainmeterObject = CreateRainmeterObject(rm);
-		PyObject *resultObj = PyObject_CallMethod(measure->measureObject, "Reload", "Od", rainmeterObject, maxValue);
+		if (rainmeterObject == NULL){
+			rainmeterObject = CreateRainmeterObject(rm);
+		}
+		// PyObject *resultObj = PyObject_CallMethod(measure->measureObject, "Reload", "Od", rainmeterObject, maxValue);
+		PyObject *resultObj = PyObject_CallMethod(pyInfo.loader, "callReload", "OOd", measure->measureObject, rainmeterObject, maxValue);
 		if (resultObj != NULL)
 		{
 			Py_DECREF(resultObj);
@@ -116,6 +127,9 @@ PLUGIN_EXPORT void Reload(void* data, void* rm, double* maxValue)
 		{
 			PyErr_Clear();
 		}
+
+	}
+	if (rainmeterObject != NULL){
 		Py_DECREF(rainmeterObject);
 	}
 
@@ -131,7 +145,8 @@ PLUGIN_EXPORT double Update(void* data)
 	}
 	// PyEval_RestoreThread(mainThreadState);
 	PyEval_RestoreThread(measure->mainThreadState);
-	PyObject *resultObj = PyObject_CallMethod(measure->measureObject, "Update", NULL);
+	// PyObject *resultObj = PyObject_CallMethod(measure->measureObject, "Update", NULL);
+	PyObject *resultObj = PyObject_CallMethod(pyInfo.loader, "callUpdate", "O", measure->measureObject);
 	double result = 0.0;
 	if (resultObj != NULL) 
 	{
@@ -156,7 +171,8 @@ PLUGIN_EXPORT LPCWSTR GetString(void* data)
 
 	// PyEval_RestoreThread(mainThreadState);
 	PyEval_RestoreThread(measure->mainThreadState);
-	PyObject *resultObj = PyObject_CallMethod(measure->measureObject, "GetString", NULL);
+	// PyObject *resultObj = PyObject_CallMethod(measure->measureObject, "GetString", NULL);
+	PyObject *resultObj = PyObject_CallMethod(pyInfo.loader, "callGetString", "O", measure->measureObject);
 	if (measure->getStringResult != NULL)
 	{
 		PyMem_Free(measure->getStringResult);
@@ -180,6 +196,7 @@ PLUGIN_EXPORT LPCWSTR GetString(void* data)
 	return measure->getStringResult;
 }
 
+
 PLUGIN_EXPORT void ExecuteBang(void* data, LPCWSTR args)
 {
 	Measure *measure = (Measure*) data;
@@ -190,7 +207,7 @@ PLUGIN_EXPORT void ExecuteBang(void* data, LPCWSTR args)
 
 	PyEval_RestoreThread(measure->mainThreadState);
 	PyObject *argsObj = PyUnicode_FromWideChar(args, -1);
-	PyObject *resultObj = PyObject_CallMethod(measure->measureObject, "ExecuteBang", "O", argsObj);
+	PyObject *resultObj = PyObject_CallMethod(pyInfo.loader, "callExecuteBang", "OO", measure->measureObject, argsObj);
 	if (resultObj != NULL)
 	{
 		Py_DECREF(resultObj);
@@ -209,7 +226,7 @@ PLUGIN_EXPORT void Finalize(void* data)
 	PyEval_RestoreThread(measure->mainThreadState);
 	if (measure->measureObject != NULL)
 	{
-		PyObject *resultObj = PyObject_CallMethod(measure->measureObject, "Finalize", NULL);
+		PyObject *resultObj = PyObject_CallMethod(pyInfo.loader, "callFinalize", "O", measure->measureObject);
 		if (resultObj != NULL)
 		{
 			Py_DECREF(resultObj);
@@ -223,6 +240,7 @@ PLUGIN_EXPORT void Finalize(void* data)
 		{
 			PyMem_Free(measure->getStringResult);
 		}
+		Py_DECREF(measure->measureObject);
 	}
 	delete measure;
 	pyInfo.measures_loaded--;
@@ -233,4 +251,59 @@ PLUGIN_EXPORT void Finalize(void* data)
 
 	PyEval_SaveThread();
 	//Py_Finalize(); // Testing this without killing the interpreter to reset its status
+}
+
+// Rainmeter plugins can call custom functions to get special values from a measure.
+// We can use allow call custom methods on Python measures.
+
+PLUGIN_EXPORT LPCWSTR Func(void* data, const int argc, const WCHAR* argv[]) {
+	// return nullptr;
+	Measure* measure = (Measure*) data;
+	if (argc < 0) { 
+		RmLog(measure->lastRm, LOG_ERROR, L"No Python method specified.");
+		return L"ERR"; 
+	}
+
+	if (measure->measureObject == NULL) { return nullptr; }
+
+	PyEval_RestoreThread(measure->mainThreadState);
+
+	PyObject* funcNameObj = PyUnicode_FromWideChar(argv[0], -1);
+	PyObject* argsObj = PyTuple_New(argc - 1);
+
+	for (int i = 1; i < argc; i++) {
+		PyObject* arg = PyUnicode_FromWideChar(argv[i], -1);
+		PyTuple_SetItem(argsObj, i - 1, arg);
+	}
+
+	PyObject* resultObj = PyObject_CallMethod(pyInfo.loader, "callFunc", "OOO", measure->measureObject, funcNameObj, argsObj);
+
+	Py_DECREF(funcNameObj);
+	Py_DECREF(argsObj);
+
+	if (resultObj == NULL)
+	{
+		PyErr_Print();
+		PyErr_Clear();
+		PyEval_SaveThread();
+		return nullptr;
+
+	} else if (resultObj == Py_None) {
+		Py_DECREF(resultObj);
+		PyEval_SaveThread();
+		return nullptr;
+	}
+
+	static wchar_t* retVal;
+	if (retVal != NULL) {
+		PyMem_Free(retVal);
+	}
+
+	retVal = PyUnicode_AsWideCharString(resultObj, NULL);
+	Py_DECREF(resultObj);
+	
+	PyEval_SaveThread();
+	// return L"WORKING";
+	return retVal;
+
 }

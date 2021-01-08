@@ -1,10 +1,10 @@
 cmake_minimum_required(VERSION 3.0.0)
-project(test VERSION 0.1.0)
+project(RmPythonExtension VERSION 0.1.0)
 
 cmake_policy(SET CMP0076 NEW)
 set (CMAKE_CXX_STANDARD 17)
 set (_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING 1)
-set(TARGET_NAME RmPythonPlugin)
+set(TARGET_NAME RmPython)
 
 set(Boost_USE_STATIC_LIBS ON) 
 set(Boost_USE_MULTITHREADED ON)  
@@ -15,7 +15,7 @@ set(Python_USE_STATIC_LIBS ON)
 include_directories(${RAINMETER_API_ROOT})
 include_directories(${RAINMETER_API_ROOT})
 
-include_directories(${LOCAL_TRIPLET_INCLUDE_DIR}/python3.9 )
+include_directories(${LOCAL_TRIPLET_INCLUDE_DIR}/python3.9)
 
 # If you're using Boost:
 find_package(Boost 1.45.0 REQUIRED) 
