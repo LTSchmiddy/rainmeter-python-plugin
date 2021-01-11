@@ -15,6 +15,8 @@ instance: MeasureHost = None
 class MeasureHost:
     _instance: MeasureHost
     
+    std_mode: bool
+    
     out: StdHandler
     err: StdHandler
     
@@ -32,6 +34,10 @@ class MeasureHost:
         cls._instance = p_instance
         instance = p_instance
     
+    def __init__(self, p_std_mode = True) -> None:
+        super().__init__()
+        self.std_mode = p_std_mode
+    
     def _setup_stdout(self, rm: RainmeterW):
         self.out = StdHandler("Py", rm, rm.LOG_NOTICE)
         self.err = StdHandler("Py", rm, rm.LOG_ERROR)
@@ -46,7 +52,9 @@ class MeasureHost:
     
     def setup(self, rm, exec_path: str):
         self.set_instance(self)
-        self._setup_stdout(rm)
+        
+        if self.std_mode:
+            self._setup_stdout(rm)
         
         print(sys.path)
         
@@ -58,24 +66,34 @@ class MeasureHost:
         
         
     def setRm(self, rm):
-        self.out.rm = rm
-        self.err.rm = rm
+        if self.std_mode:
+            self.out.rm = rm
+            self.err.rm = rm
+    
     
     def loadMeasure(self, rm: RainmeterW = None):
         self.setRm(rm)
-        classPath = rm.RmReadString("Module", "", False)
+        try:
+            classPath = rm.RmReadString("Module", "", False)
+            print(classPath)
+            
+            if classPath != "":
+                return self.mh.load_measure(
+                    classPath,
+                    rm.RmReadString("Loader", "Measure()", False),
+                    True
+                )
+            else:
+                return self.mh.load_measure(
+                    rm.RmReadPath("Path", "__NONE__"),
+                    rm.RmReadString("Loader", "Measure()", False)
+                )
+                
+        except Exception as e:
+            self.rm.RmLog(self.rm.LOG_ERROR, str(e))
+            return None
+            
         
-        if classPath != "":
-            return self.mh.load_measure(
-                classPath,
-                rm.RmReadString("Loader", "Measure()", False),
-                True
-            )
-        else:
-            return self.mh.load_measure(
-                rm.RmReadPath("Path", "__NONE__"),
-                rm.RmReadString("Loader", "Measure()", False)
-            )
 
     
     # Wrappers for measure calls. Used to catch errors and print them to the log.

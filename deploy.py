@@ -3,17 +3,13 @@ settings = json.load(open("./mcppt_settings.json", 'r'))["deploy.py"]
 
 # print (settings)
 
+for i in os.listdir(settings["plugin-build-out-path"]):
 # # Copy Plugin:
-shutil.copy(
-    settings["plugin-build-out-path"],
-    settings["rainmeter-plugin-path"]
-)
-
-if os.path.isfile(settings["plugin-build-symbols-path"]):
     shutil.copy(
-        settings["plugin-build-symbols-path"],
+        os.path.join(settings["plugin-build-out-path"], i),
         settings["rainmeter-plugin-path"]
     )
+
 
 def recursive_overwrite(src, dest, ignore=None):
     if os.path.isdir(src):
@@ -34,5 +30,6 @@ def recursive_overwrite(src, dest, ignore=None):
 
 recursive_overwrite(settings["plugin-loader-scripts-path"], settings["rainmeter-root-path"])
 recursive_overwrite(settings["rainmeter-skin-src-path"], settings["rainmeter-skin-dest-path"])
+
 
 # input("Press Enter to close...")

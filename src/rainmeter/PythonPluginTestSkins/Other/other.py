@@ -12,7 +12,7 @@ class StdHandler2():
 
 class Measure2:
     def Reload(self, rm, maxValue):
-        rm.RmLog(rm.LOG_NOTICE, "Reload called")
+        rm.RmLog(rm.LOG_NOTICE, "!! Reload called")
 
     def Update(self):
         return 1.0

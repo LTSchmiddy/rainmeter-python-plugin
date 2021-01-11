@@ -17,8 +17,7 @@
         "exec": "git"
     },
     "deploy.py": {
-        "plugin-build-out-path": "./build-Debug/bin/RmPython.dll",
-        "plugin-build-symbols-path": "./build-Debug/bin/RmPython.pdb",
+        "plugin-build-out-path": "./build-Debug/bin/",
         "plugin-loader-scripts-path": "./src/py/",
         "rainmeter-plugin-path": "./Rainmeter-Testing/Plugins/",
         "rainmeter-root-path": "./Rainmeter-Testing",

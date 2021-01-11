@@ -17,7 +17,7 @@
 	along with this program; if not, write to the Free Software
 	Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
-
+// #include "ManageSP.h"
 #include <filesystem>
 
 #include <Windows.h>
@@ -27,16 +27,15 @@
 #include "ManagePython.h"
 #include "utils.h"
 
-#include "main.h"
+#include "sp_main.h"
+
 
 using namespace std;
 using namespace std::filesystem;
 
 
-
-
 Measure::Measure() {
-	measureObject = NULL;
+	measureIdObject = NULL;
 	getStringResult = NULL;
 	mainThreadState = NULL;
 	lastRm = NULL;
@@ -46,7 +45,7 @@ PLUGIN_EXPORT void Initialize(void** data, void* rm)
 {
 	bool should_save = false;
 	if (!pyInfo.plugin_initialized){
-		InitializePython();
+		InitializePython(true);
 		should_save = true;
 	}
 
@@ -64,7 +63,6 @@ PLUGIN_EXPORT void Initialize(void** data, void* rm)
 
 PLUGIN_EXPORT void Reload(void* data, void* rm, double* maxValue)
 {
-	
 	Measure *measure = (Measure*) data;
 	PyObject *rainmeterObject = NULL;
 	measure->lastRm = NULL;
@@ -80,8 +78,7 @@ PLUGIN_EXPORT void Reload(void* data, void* rm, double* maxValue)
 		pyInfo.global_rm = rainmeterObject;
 	}
 
-	if (measure->measureObject == NULL)
-	{
+	if (measure->measureIdObject == NULL ||  measure->measureIdObject == Py_None)	{
 		if (rainmeterObject == NULL){
 			rainmeterObject = CreateRainmeterObject(rm);
 		}
@@ -91,7 +88,7 @@ PLUGIN_EXPORT void Reload(void* data, void* rm, double* maxValue)
 
 		if (resultObj != NULL)
 		{
-			measure->measureObject = resultObj;
+			measure->measureIdObject = resultObj;
 		}
 		else
 		{
@@ -100,13 +97,13 @@ PLUGIN_EXPORT void Reload(void* data, void* rm, double* maxValue)
 		}
 	}
 
-	if (measure->measureObject != NULL)
+	if (measure->measureIdObject != NULL)
 	{
 		if (rainmeterObject == NULL){
 			rainmeterObject = CreateRainmeterObject(rm);
 		}
 		// PyObject *resultObj = PyObject_CallMethod(measure->measureObject, "Reload", "Od", rainmeterObject, maxValue);
-		PyObject *resultObj = PyObject_CallMethod(pyInfo.loader, "callReload", "OOd", measure->measureObject, rainmeterObject, maxValue);
+		PyObject *resultObj = PyObject_CallMethod(pyInfo.loader, "callReload", "OOd", measure->measureIdObject, rainmeterObject, maxValue);
 		if (resultObj != NULL)
 		{
 			Py_DECREF(resultObj);
@@ -127,14 +124,14 @@ PLUGIN_EXPORT void Reload(void* data, void* rm, double* maxValue)
 PLUGIN_EXPORT double Update(void* data)
 {
 	Measure *measure = (Measure*) data;
-	if (measure->measureObject == NULL)
+	if (measure->measureIdObject == NULL)
 	{
 		return 0.0;
 	}
 	// PyEval_RestoreThread(mainThreadState);
 	PyEval_RestoreThread(measure->mainThreadState);
 	// PyObject *resultObj = PyObject_CallMethod(measure->measureObject, "Update", NULL);
-	PyObject *resultObj = PyObject_CallMethod(pyInfo.loader, "callUpdate", "O", measure->measureObject);
+	PyObject *resultObj = PyObject_CallMethod(pyInfo.loader, "callUpdate", "O", measure->measureIdObject);
 	double result = 0.0;
 	if (resultObj != NULL) 
 	{
@@ -152,7 +149,7 @@ PLUGIN_EXPORT double Update(void* data)
 PLUGIN_EXPORT LPCWSTR GetString(void* data)
 {
 	Measure *measure = (Measure*) data;
-	if (measure->measureObject == NULL)
+	if (measure->measureIdObject == NULL)
 	{
 		return measure->getStringResult;
 	}
@@ -160,7 +157,7 @@ PLUGIN_EXPORT LPCWSTR GetString(void* data)
 	// PyEval_RestoreThread(mainThreadState);
 	PyEval_RestoreThread(measure->mainThreadState);
 	// PyObject *resultObj = PyObject_CallMethod(measure->measureObject, "GetString", NULL);
-	PyObject *resultObj = PyObject_CallMethod(pyInfo.loader, "callGetString", "O", measure->measureObject);
+	PyObject *resultObj = PyObject_CallMethod(pyInfo.loader, "callGetString", "O", measure->measureIdObject);
 	if (measure->getStringResult != NULL)
 	{
 		PyMem_Free(measure->getStringResult);
@@ -188,14 +185,14 @@ PLUGIN_EXPORT LPCWSTR GetString(void* data)
 PLUGIN_EXPORT void ExecuteBang(void* data, LPCWSTR args)
 {
 	Measure *measure = (Measure*) data;
-	if (measure->measureObject == NULL)
+	if (measure->measureIdObject == NULL)
 	{
 		return;
 	}
 
 	PyEval_RestoreThread(measure->mainThreadState);
 	PyObject *argsObj = PyUnicode_FromWideChar(args, -1);
-	PyObject *resultObj = PyObject_CallMethod(pyInfo.loader, "callExecuteBang", "OO", measure->measureObject, argsObj);
+	PyObject *resultObj = PyObject_CallMethod(pyInfo.loader, "callExecuteBang", "OO", measure->measureIdObject, argsObj);
 	if (resultObj != NULL)
 	{
 		Py_DECREF(resultObj);
@@ -212,9 +209,9 @@ PLUGIN_EXPORT void Finalize(void* data)
 {
 	Measure *measure = (Measure*) data;
 	PyEval_RestoreThread(measure->mainThreadState);
-	if (measure->measureObject != NULL)
+	if (measure->measureIdObject != NULL)
 	{
-		PyObject *resultObj = PyObject_CallMethod(pyInfo.loader, "callFinalize", "O", measure->measureObject);
+		PyObject *resultObj = PyObject_CallMethod(pyInfo.loader, "callFinalize", "O", measure->measureIdObject);
 		if (resultObj != NULL)
 		{
 			Py_DECREF(resultObj);
@@ -228,15 +225,29 @@ PLUGIN_EXPORT void Finalize(void* data)
 		{
 			PyMem_Free(measure->getStringResult);
 		}
-		Py_DECREF(measure->measureObject);
+		Py_DECREF(measure->measureIdObject);
 	}
 	delete measure;
 	pyInfo.measures_loaded--;
 	if (pyInfo.measures_loaded == 0) {
 		Py_DECREF(pyInfo.global_rm);
 		pyInfo.global_rm = NULL;
+
+		// Terminating the Python subprocess:
+		PyObject *resultObj = PyObject_CallMethod(pyInfo.loader, "terminate", NULL);
+		if (resultObj != NULL)
+		{
+			Py_DECREF(resultObj);
+		}
+		
+		else {
+			PyErr_Print();
+			PyErr_Clear();
+		}
 	}
 
+
+	
 	PyEval_SaveThread();
 	//Py_Finalize(); // Testing this without killing the interpreter to reset its status
 }
@@ -252,7 +263,7 @@ PLUGIN_EXPORT LPCWSTR Func(void* data, const int argc, const WCHAR* argv[]) {
 		return L"ERR"; 
 	}
 
-	if (measure->measureObject == NULL) { return nullptr; }
+	if (measure->measureIdObject == NULL) { return nullptr; }
 
 	PyEval_RestoreThread(measure->mainThreadState);
 
@@ -264,7 +275,7 @@ PLUGIN_EXPORT LPCWSTR Func(void* data, const int argc, const WCHAR* argv[]) {
 		PyTuple_SetItem(argsObj, i - 1, arg);
 	}
 
-	PyObject* resultObj = PyObject_CallMethod(pyInfo.loader, "callFunc", "OOO", measure->measureObject, funcNameObj, argsObj);
+	PyObject* resultObj = PyObject_CallMethod(pyInfo.loader, "callFunc", "OOO", measure->measureIdObject, funcNameObj, argsObj);
 
 	Py_DECREF(funcNameObj);
 	Py_DECREF(argsObj);

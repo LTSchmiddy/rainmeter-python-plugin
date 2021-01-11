@@ -45,3 +45,5 @@ class RainmeterW:
        
     def RmLog(self, level: int, message: str):
         return self.rm.RmLog(level, message)
+    
+    

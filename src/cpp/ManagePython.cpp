@@ -4,7 +4,7 @@
 
 #include "PyRainmeter.h"
 #include "utils.h"
-#include "main.h"
+// #include "main.h"
 
 #include "ManagePython.h"
 
@@ -16,6 +16,9 @@ PythonInfo pyInfo;
 PyThreadState *mainThreadState = NULL;
 
 void InitializePython() {
+	InitializePython(false);
+}
+void InitializePython(bool spMode) {
 	path interpHome = get_python_interpreter_home();
     wstring debugDefaultHome = to_wstring(interpHome.u8string());
 	string defaultHome = interpHome.u8string();
@@ -51,15 +54,24 @@ void InitializePython() {
 	RmLog(LOG_DEBUG, loader_path.c_str());
 	pyInfo.loader = LoadObjectFromScript(loader_path.c_str(), PYTHON_LOADER, PY_HOST_CLASS);
 
+
+
     pyInfo.plugin_initialized = true;
 }
 
 void PyController_Init(void* rm){
 
 	pyInfo.global_rm = CreateRainmeterObject(rm);
+
+	#ifndef SP_MODE
 	pyInfo.exec_path = get_python_interpreter_exec();
+	#else
+	pyInfo.exec_path = get_python_interpreter_wexec();
+	#endif
 
 	PyObject *resultObj = PyObject_CallMethod(pyInfo.loader, "setup", "Os", pyInfo.global_rm, pyInfo.exec_path.u8string().c_str());
+	
+	
 	if (resultObj != NULL)
 	{
 		Py_DECREF(resultObj);
@@ -71,8 +83,7 @@ void PyController_Init(void* rm){
 	}
 }
 
-void AddDirToPath(LPCWSTR dir)
-{
+void AddDirToPath(LPCWSTR dir) {
 	PyObject *pathObj = PySys_GetObject("path");
 	PyObject *scriptDirObj = PyUnicode_FromWideChar(dir, -1);
 	if (!PySequence_Contains(pathObj, scriptDirObj))
@@ -83,8 +94,7 @@ void AddDirToPath(LPCWSTR dir)
 }
 
 
-PyObject* LoadObjectFromScript(LPCWSTR scriptPath, char* fileName, LPCWSTR className)
-{
+PyObject* LoadObjectFromScript(LPCWSTR scriptPath, char* fileName, LPCWSTR className) {
 	try 
 	{
 		FILE* f = _Py_wfopen(scriptPath, L"r");

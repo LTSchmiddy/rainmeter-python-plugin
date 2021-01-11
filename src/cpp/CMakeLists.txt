@@ -9,3 +9,14 @@ target_sources(${TARGET_NAME}
     "./utils.h"
     "./utils.cpp"
 )
+target_sources(${TARGET_NAME_SP}
+    PUBLIC
+    "./sp_main.h"
+    "./sp_main.cpp"
+    "./utils.h"
+    "./utils.cpp"
+    "./PyRainmeter.h"
+    "./PyRainmeter.cpp"
+    "./ManagePython.h"
+    "./ManagePython.cpp"
+)

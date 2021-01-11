@@ -4,11 +4,22 @@
 #include <filesystem>
 #include <string>
 
-#include "main.h"
+// #include "main.h"
 
 #define PYTHON_HOME "PythonHome"
-#define PYTHON_LOADER "measure_host.py"
-#define PY_HOST_CLASS L"MeasureHost"
+
+#ifndef SP_MODE
+
+    #define PYTHON_LOADER "measure_host.py"
+    #define PY_HOST_CLASS L"MeasureHost"
+
+#else
+
+    #define PYTHON_LOADER "sp_host.py"
+    #define PY_HOST_CLASS L"SpHost"
+
+#endif
+
 
 struct PythonInfo {
     bool plugin_initialized = false;
@@ -23,12 +34,14 @@ struct PythonInfo {
 extern PythonInfo pyInfo;
 extern PyThreadState *mainThreadState;
 
+void InitializePython(bool spMode);
 void InitializePython();
+
 
 void PyController_Init(void* rm);
 
 void AddDirToPath(LPCWSTR dir);
 PyObject* LoadObjectFromScript(LPCWSTR scriptPath, char* fileName, LPCWSTR className);
-void LoadMeasureScript(LPCWSTR scriptPath, char* fileName, LPCWSTR className, Measure* measure);
+// void LoadMeasureScript(LPCWSTR scriptPath, char* fileName, LPCWSTR className, Measure* measure);
 
 #endif
