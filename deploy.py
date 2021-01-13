@@ -11,6 +11,20 @@ for i in os.listdir(settings["plugin-build-out-path"]):
     )
 
 
+for i in os.listdir(settings["py-ext-build-out-path"]):
+# # Copy Plugin:
+    if i.endswith(".dll"):
+        shutil.copy(
+            os.path.join(settings["py-ext-build-out-path"], i),
+            os.path.join(settings["rainmeter-root-path"], i.removesuffix(".dll")+".pyd")
+        )
+    else:
+        shutil.copy(
+        os.path.join(settings["py-ext-build-out-path"], i),
+        settings["rainmeter-root-path"]
+    )
+
+
 def recursive_overwrite(src, dest, ignore=None):
     if os.path.isdir(src):
         if not os.path.isdir(dest):

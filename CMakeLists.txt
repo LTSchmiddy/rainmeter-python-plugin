@@ -4,8 +4,10 @@ project(RmPythonExtensions VERSION 0.1.0)
 cmake_policy(SET CMP0076 NEW)
 set (CMAKE_CXX_STANDARD 17)
 set (_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING 1)
+
 set(TARGET_NAME PyPlugin)
 set(TARGET_NAME_SP PyPluginSp)
+set(TARGET_NAME_PIPE_MOD rm_pype)
 
 set(Boost_USE_STATIC_LIBS ON) 
 set(Boost_USE_MULTITHREADED ON)  
@@ -24,10 +26,12 @@ find_package(ZLIB REQUIRED)
 
 add_library(${TARGET_NAME} SHARED)
 add_library(${TARGET_NAME_SP} SHARED)
+add_library(${TARGET_NAME_PIPE_MOD} SHARED)
 
 # Prevents spam from debug linking for Python
 set_target_properties(${TARGET_NAME} PROPERTIES LINK_FLAGS "/ignore:4099")
 set_target_properties(${TARGET_NAME_SP} PROPERTIES LINK_FLAGS "/ignore:4099")
+set_target_properties(${TARGET_NAME_PIPE_MOD} PROPERTIES LINK_FLAGS "/ignore:4099")
 
 message(STATUS ${Python_LIBRARIES})
 
@@ -41,6 +45,10 @@ target_link_libraries(${TARGET_NAME_SP} ${Python_LIBRARIES})
 target_link_libraries(${TARGET_NAME_SP} ZLIB::ZLIB)
 target_link_libraries(${TARGET_NAME_SP} ${RAINMETER_API_LIB})
 
+target_link_libraries(${TARGET_NAME_PIPE_MOD} ${Boost_LIBRARIES})
+target_link_libraries(${TARGET_NAME_PIPE_MOD} ${Python_LIBRARIES})
+target_link_libraries(${TARGET_NAME_PIPE_MOD} ZLIB::ZLIB)
+# target_link_libraries(${TARGET_NAME_PIPE_MOD} ${RAINMETER_API_LIB})
 
 add_subdirectory("./src/cpp")
 
@@ -57,8 +65,14 @@ set_target_properties(${TARGET_NAME_SP}
     LIBRARY_OUTPUT_DIRECTORY "./lib/"
     RUNTIME_OUTPUT_DIRECTORY "./bin/"
 )
-
 target_compile_definitions(${TARGET_NAME_SP} PUBLIC SP_MODE=1)
+
+set_target_properties(${TARGET_NAME_PIPE_MOD}
+    PROPERTIES
+    ARCHIVE_OUTPUT_DIRECTORY "./arc/"
+    LIBRARY_OUTPUT_DIRECTORY "./lib/"
+    RUNTIME_OUTPUT_DIRECTORY "./py_bin/"
+)
 
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})

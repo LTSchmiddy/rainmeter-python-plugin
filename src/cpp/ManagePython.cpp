@@ -63,13 +63,24 @@ void PyController_Init(void* rm){
 
 	pyInfo.global_rm = CreateRainmeterObject(rm);
 
-	#ifndef SP_MODE
-	pyInfo.exec_path = get_python_interpreter_exec();
-	#else
-	pyInfo.exec_path = get_python_interpreter_wexec();
-	#endif
+	// #ifndef SP_MODE
+	// pyInfo.exec_path = get_python_interpreter_exec();
+	// #else
+	// pyInfo.exec_path = get_python_interpreter_wexec();
+	// #endif
 
-	PyObject *resultObj = PyObject_CallMethod(pyInfo.loader, "setup", "Os", pyInfo.global_rm, pyInfo.exec_path.u8string().c_str());
+	pyInfo.exec_path = get_python_interpreter_wexec();
+
+	pyInfo.console_exec_path = get_python_interpreter_exec();
+
+	PyObject *resultObj = PyObject_CallMethod(
+		pyInfo.loader,
+		"setup",
+		"Oss",
+		pyInfo.global_rm,
+		pyInfo.exec_path.u8string().c_str(),
+		pyInfo.console_exec_path.u8string().c_str()
+	);
 	
 	
 	if (resultObj != NULL)

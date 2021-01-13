@@ -246,8 +246,6 @@ PLUGIN_EXPORT void Finalize(void* data)
 		}
 	}
 
-
-	
 	PyEval_SaveThread();
 	//Py_Finalize(); // Testing this without killing the interpreter to reset its status
 }

@@ -18,6 +18,7 @@
     },
     "deploy.py": {
         "plugin-build-out-path": "./build-Debug/bin/",
+        "py-ext-build-out-path": "./build-Debug/py_bin/",
         "plugin-loader-scripts-path": "./src/py/",
         "rainmeter-plugin-path": "./Rainmeter-Testing/Plugins/",
         "rainmeter-root-path": "./Rainmeter-Testing",

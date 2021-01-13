@@ -3,6 +3,7 @@ import sys
 from PythonLoaderUtils.rm_stub import RainmeterW
 
 n_instances = 0
+import github
 
 class Measure:
     def __init__(self):

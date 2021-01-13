@@ -1,0 +1,8 @@
+
+==== PyPluginSp ====
+-> Logging output per module.
+-> Communicate on named pipes instead of stdio
+    -- Create native pipe module/class for embedded.
+-> Modules sharing interpreters.
+-> Track measure count per subprocess and terminate unneeded interpreters instances.
+-> Finalize embedded Python interpreter if all measures are unloaded.

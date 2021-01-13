@@ -1,9 +1,10 @@
 import sys, pickle, os
 
+
 class MeasureBase:
     def __init__(self):
         self.var = "hello"
-        
+
     def Reload(self, rm, maxValue):
         pass
 
@@ -11,7 +12,7 @@ class MeasureBase:
         return 1.0
 
     def GetString(self):
-        return ''
+        return ""
 
     def ExecuteBang(self, args):
         pass

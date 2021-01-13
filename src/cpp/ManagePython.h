@@ -26,6 +26,7 @@ struct PythonInfo {
     unsigned measures_loaded = 0;
 
     std::filesystem::path exec_path;
+    std::filesystem::path console_exec_path;
 
     PyObject* loader = NULL;
     PyObject* global_rm;
