@@ -1,0 +1,1 @@
+PythonHome\python.exe PythonLoaderScripts\install_pip.py
