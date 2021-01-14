@@ -21,11 +21,15 @@ class JsonClass:
         return json.dumps(self.save_dict(), indent=indent, **kwargs)
 
     def save_json_file(self, filepath: str, indent=4, **kwargs):
-        return json.dump(self.save_dict(), open(filepath, "w"), indent=indent, **kwargs)
+        save_file = open(filepath, "w")
+        json.dump(self.save_dict(), save_file, indent=indent, **kwargs)
+        save_file.close()
 
     def load_json_file(self, filepath: str):
-        in_data = json.load(open(filepath, "r"))
+        in_file = open(filepath, "r")
+        in_data = json.load(in_file)
         self.load_dict(in_data)
+        in_file.close()
 
     def load_json_string(self, p_str: str):
         in_data = json.loads(p_str)

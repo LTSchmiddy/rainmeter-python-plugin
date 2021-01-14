@@ -1,13 +1,14 @@
 # A Control Module for RmPython to help manage module imports and other interpreter tasks:
 from __future__ import annotations
-import sys, os, json, pathlib
+import sys, os, pathlib, traceback
 
 from PythonLoaderUtils.stdhandler import StdHandler
 from PythonLoaderUtils.meaure_type import MeasureBase
 from PythonLoaderUtils.module_handler import ModuleHandler
 from PythonLoaderUtils.module_info import ModuleInfo
-from PythonLoaderUtils.pip_handler import check_for_pip
 from PythonLoaderUtils.rm_stub import RainmeterW
+
+from PythonLoaderUtils import pip_handler
 
 # import subinterp
 from subinterp import SubInterp
@@ -25,7 +26,7 @@ class MeasureRef:
 
 
 class CountingSubInterp(SubInterp):
-    mun_measures: int = 0
+    num_measures: int = 0
 
 
 class SpHost:
@@ -34,7 +35,7 @@ class SpHost:
     out: StdHandler
     err: StdHandler
 
-    si: SubInterp
+    # si: SubInterp
 
     mod_si: dict[str, SubInterp]
 
@@ -55,7 +56,7 @@ class SpHost:
 
     def _setup_stdout(self, rm: RainmeterW):
         self.out = StdHandler("Py", rm, rm.LOG_NOTICE)
-        self.err = StdHandler("Py", rm, rm.LOG_ERROR)
+        self.err = StdHandler("PyErr", rm, rm.LOG_ERROR)
 
         # Just in case:
         self._old_stdout = sys.stdout
@@ -75,6 +76,9 @@ class SpHost:
 
         self.exec_path = exec_path
         self.console_exec_path = console_exec_path
+        
+        pip_handler.interp_path = console_exec_path
+        
         print(f"{self.exec_path=}")
         print(f"{self.console_exec_path=}")
 
@@ -82,7 +86,8 @@ class SpHost:
         ModuleInfo.set_interp_path(self.console_exec_path)
         self.mod_si = {}
 
-        check_for_pip()
+        if not pip_handler.check_for_pip():
+            pip_handler.install_pip()
         # self.si = self.newInterpreter()
 
         # print(f"returned {self.sp_request(rm, {})}")
@@ -99,30 +104,58 @@ class SpHost:
         self.out.rm = rm
         self.err.rm = rm
 
-    def newInterpreter(self, info_path="__main__"):
-        print(f"Starting interpreter for '{info_path}'...")
+    def newInterpreter(self, siKey="__main__"):
+        print(f"Starting interpreter for '{siKey}'...")        
+        cpath = os.path.abspath("sp_child.py")
+        print(f"{cpath=}")
+        retVal = CountingSubInterp(str(cpath), "spChildMain", "sp_child_")
+        self.mod_si[siKey] = retVal
+        return retVal
+    
+    def newInterpreter_Info(self, minfo: ModuleInfo):
+        print(f"Starting interpreter for '{minfo.active_siKey}'...")
         
-        
-        use_interp = None
-        if info_path != "__main__":
-            minfo = ModuleInfo.load_module_info(info_path)
-            minfo.run_setup()
-            use_interp = minfo.abs_venv_exec
+        if minfo.should_setup_run:
+            pip_handler.setup_minfo(minfo)
         
         cpath = os.path.abspath("sp_child.py")
         print(f"{cpath=}")
-        retVal = CountingSubInterp(str(cpath), "spChildMain", "sp_child_", use_interp_path=use_interp)
-        self.mod_si[info_path] = retVal
+        
+        retVal = CountingSubInterp(
+            str(cpath),
+            "spChildMain", 
+            "sp_child_", 
+            popen_args = {
+                'cwd': minfo.abs_working_directory
+            }, 
+            use_interp_path=minfo.abs_venv_exec
+        )
+        
+        minfo.save_module_info()
+        
+        self.mod_si[minfo.active_siKey] = retVal
         return retVal
+    
+    def destroyInterpreter(self, siKey="__main__"):
+        self.sp_request({"type": "exit"}, self.mod_si[siKey])
+        
+        self.mod_si[siKey].proc.wait()
+        del self.mod_si[siKey]
 
-    def getInterpreter(self, info_path: str) -> CountingSubInterp:
-        # minfo = ModuleInfo.load_module_info(info_path)
-
-        if info_path in self.mod_si.keys():
-            return self.mod_si[info_path]
+    def getInterpreter(self, siKey: str, info_mode: bool = False) -> CountingSubInterp:
+        minfo = None
+        if info_mode:
+            minfo = ModuleInfo.load_module_info(siKey)
+            siKey = minfo.active_siKey
+        
+        if siKey in self.mod_si.keys():
+            return self.mod_si[siKey]
 
         else:
-            return self.newInterpreter(info_path)
+            if info_mode:
+                return self.newInterpreter_Info(minfo)
+            else:
+                return self.newInterpreter(siKey)
 
     # If loadMeasure returns None, then the measure was unable to be loaded by the subprocess.
     # In this case, check the subprocess log file.
@@ -130,18 +163,16 @@ class SpHost:
         self.setRm(rm)
 
         interp = None
+        siKey = None
 
-        # siKey = str(pathlib.Path(rm.RmReadPath("Info", "")).resolve())
-        siKey = rm.RmReadPath("Info", "")
-        print(f"{siKey=}")
+        if rm.RmReadPath("Info", "") != "":
+            siKey, interp = self.loadInterp_Info(rm)
+        
+        elif rm.RmReadPath("Path", "") != "":
+            siKey, interp = self.loadInterp_Path(rm)
 
-        if len(siKey) > 0:
-            siKey = str(pathlib.Path(siKey).resolve())
-            interp = self.getInterpreter(siKey)
-
-        else:
-            siKey = "__main__"
-            interp = self.getInterpreter(siKey)
+        elif rm.RmReadString("Module", "") != "":
+            siKey, interp = self.loadInterp_Module(rm)
 
         mId = self.sp_request({"type": "loadMeasure"}, interp)
 
@@ -150,11 +181,25 @@ class SpHost:
                 rm.LOG_ERROR,
                 "This measure could not be loaded. Check the sub-process log file for details.",
             )
-        else:
-            print(mId)
+        # else:
+        #     print(mId)
 
+        interp.num_measures += 1
         return MeasureRef(mId, siKey)
 
+    def loadInterp_Module(self, rm: RainmeterW):
+        return ('__main__', self.getInterpreter('__main__'))
+    
+    def loadInterp_Path(self, rm: RainmeterW):
+        return ('__main__', self.getInterpreter('__main__'))
+    
+    def loadInterp_Info(self, rm: RainmeterW):
+        siKey = str(pathlib.Path( rm.RmReadPath("Info", "")).resolve())
+        interp = self.getInterpreter(siKey, True)
+        
+        return (siKey, interp)
+    
+    
     # Wrappers for measure calls. Used to catch errors and print them to the log.
     def callReload(self, m: MeasureRef, rm, maxValue: float):
         if m.mId is None:
@@ -168,7 +213,8 @@ class SpHost:
                 self.getInterpreter(m.siKey),
             )
         except Exception as e:
-            self.rm.RmLog(self.rm.LOG_ERROR, str(e))
+            # self.rm.RmLog(self.rm.LOG_ERROR, str(e))
+            traceback.print_exception(type(e), e, e.__traceback__)
 
     def callUpdate(self, m: MeasureRef):
         if m.mId is None:
@@ -179,7 +225,8 @@ class SpHost:
                 {"type": "callUpdate", "mId": m.mId}, self.getInterpreter(m.siKey)
             )
         except Exception as e:
-            self.rm.RmLog(self.rm.LOG_ERROR, str(e))
+            # self.rm.RmLog(self.rm.LOG_ERROR, str(e))
+            traceback.print_exception(type(e), e, e.__traceback__)
             return 1.0
 
     def callGetString(self, m: MeasureRef):
@@ -191,7 +238,8 @@ class SpHost:
                 {"type": "callGetString", "mId": m.mId}, self.getInterpreter(m.siKey)
             )
         except Exception as e:
-            self.rm.RmLog(self.rm.LOG_ERROR, str(e))
+            # self.rm.RmLog(self.rm.LOG_ERROR, str(e))
+            traceback.print_exception(type(e), e, e.__traceback__)
             return "ERROR: {e}"
 
     def callExecuteBang(self, m: MeasureRef, args):
@@ -204,22 +252,36 @@ class SpHost:
                 self.getInterpreter(m.siKey),
             )
         except Exception as e:
-            self.rm.RmLog(self.rm.LOG_ERROR, str(e))
+            # self.rm.RmLog(self.rm.LOG_ERROR, str(e))
+            traceback.print_exception(type(e), e, e.__traceback__)
 
     def callFinalize(self, m: MeasureRef):
         if m.mId is None:
             return
 
+        interp = self.getInterpreter(m.siKey)
+        
         try:
-            return self.sp_request(
+            retVal = self.sp_request(
                 {
                     "type": "callFinalize",
                     "mId": m.mId,
                 },
-                self.getInterpreter(m.siKey),
+                interp,
             )
+            interp.num_measures -= 1
+            
+            if interp.num_measures == 0:
+                self.destroyInterpreter(m.siKey)
+            
+            if interp.num_measures < 0:
+                raise Exception(f"interp.num_measures should never be less than zero, but {interp.num_measures=}")
+            
+            return retVal
+            
         except Exception as e:
-            self.rm.RmLog(self.rm.LOG_ERROR, str(e))
+            # self.rm.RmLog(self.rm.LOG_ERROR, str(e))
+            traceback.print_exception(type(e), e, e.__traceback__)
 
     def callFunc(self, m: MeasureRef, fname: str, args: tuple):
         if m.mId is None:
@@ -234,9 +296,10 @@ class SpHost:
                 )
             )
         except Exception as e:
-            self.rm.RmLog(self.rm.LOG_ERROR, str(e))
+            # self.rm.RmLog(self.rm.LOG_ERROR, str(e))
+            traceback.print_exception(type(e), e, e.__traceback__)
             return None
 
-    def terminate(self):
-        print("Terminating Python sub-process...")
-        self.si.proc.terminate()
+    def terminate(self):        
+        print("All sub-interpreters terminated.")
+        # self.si.proc.terminate()

@@ -137,9 +137,9 @@ class SubInterp:
 
 
 def childMain(modulePath: Path, execfn: str, log_prefix: str, *args):
-    # to enable the VSCode debugging, create 'debug.txt' in the same directory as 'python.exe'
+    # to enable the VSCode debugging, create 'debug.txt' in the cwd
 
-    debug_file_path = os.path.join(os.path.dirname(sys.executable), "../debug.txt")
+    debug_file_path = os.path.join(os.path.dirname(sys.executable), "debug.txt")
     use_debug = os.path.isfile(debug_file_path)
     # if use_debug:
 
@@ -152,10 +152,8 @@ def childMain(modulePath: Path, execfn: str, log_prefix: str, *args):
 
     # These classes remember the old TextIO for themselves.
     # No need to store backup references elsewhere.
-    # sys.stdout = SubInterpStdHandler(sys.stdout, log_prefix + "out.log")
-    # sys.stderr = SubInterpStdHandler(sys.stderr, log_prefix + "err.log")
 
-    home_dir = pathlib.Path.home()
+    home_dir = pathlib.Path(".")
     log_dir = home_dir.joinpath(".rm_PyPluginSp_logs")
 
     if not log_dir.exists():

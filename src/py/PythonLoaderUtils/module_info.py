@@ -7,13 +7,30 @@ from .json_class import JsonClass
 class ModuleInfo(JsonClass):
     interp_path: str = ""
     
-    json_attributes = ("root", "venv", "requirements")
+    json_attributes = (
+        "root",
+        "venv", 
+        "requirements", 
+        "working_directory",
+        "allow_globals",
+        "overinstall_globals",
+        "update_venv",
+        "siKey",
+    )
     
     root: str
     venv: str = "venv"
     requirements: str = None
+    working_directory: str = "./"
+    allow_globals: bool = True
+    overinstall_globals: bool = True
+    update_venv: bool = False
+    # Not yet implemented:
+    siKey: str = None
 
     path: str = None
+    
+
 
     @classmethod
     def get_interp_path(cls) -> str:
@@ -29,6 +46,18 @@ class ModuleInfo(JsonClass):
         retVal.path = path
         return retVal
 
+    def save_module_info(self, path: str = None):
+        if path is None:
+            path = self.path
+            
+        self.save_json_file(path)
+    
+    @property
+    def active_siKey(self) -> str:
+        if self.siKey is None:
+            return self.path
+        return self.siKey
+    
     @property
     def dirname(self) -> str:
         return os.path.dirname(self.path)
@@ -57,30 +86,67 @@ class ModuleInfo(JsonClass):
     @property
     def abs_venv_console_exec(self) -> str:
         return str(pathlib.Path(self.abs_venv).joinpath('Scripts').joinpath("python.exe"))
+    
+    @property
+    def abs_working_directory(self) -> str:
+        return str(pathlib.Path(self.dirname).joinpath(self.working_directory).resolve())
 
-    def run_setup(self):
+    
+    @property
+    def should_setup_run(self):
+        if not os.path.isfile(self.abs_requirements):
+            return False
+
+        if not os.path.isdir(self.abs_venv):
+            return True
         
+        if self.update_venv:
+            return True
+        
+        return False
+    
+    def setup_dependencies(self):
         if not os.path.isfile(self.abs_requirements):
             return
         
-        if os.path.isdir(self.abs_venv):
-            return
-        
-        subprocess.run(
-            [
+        if not os.path.isdir(self.abs_venv):
+            venv_args = [
                 self.get_interp_path(),
                 "-m",
                 "virtualenv",
                 self.abs_venv
             ]
-        )
+            
+            if self.allow_globals:
+                venv_args += ["--system-site-packages"]
+            
+            # print(f"{venv_args=}")
+            
+            init_proc = subprocess.run(
+                venv_args
+            )
+            
+
+            # print(f"{init_proc=}")
+
+            self.update_venv = True
+        else:
+            print(f"VENV FOUND @ {self.abs_venv}")
         
-        subprocess.run(
-            [
+        
+        if self.update_venv:
+            pip_args = [
                 self.abs_venv_pip_exec,
                 "install",
                 "-r",
                 self.abs_requirements
             ]
-        )
+            
+            if self.overinstall_globals:
+                pip_args += ["--ignore-installed"]
+        
+            subprocess.run(
+                pip_args
+            )
+            self.update_venv = False
         

@@ -77,3 +77,7 @@ class SubInterpStdHandler:
     def flush(self):
         self.oldStdout.flush()
         self.logFile.flush()
+
+    def close(self):
+        self.oldStdout.close()
+        self.logFile.close()

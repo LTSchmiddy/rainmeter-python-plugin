@@ -1,5 +1,4 @@
 {
     "root": "mod",
-    "venv": "venv",
     "requirements": "requirements.txt"
 }

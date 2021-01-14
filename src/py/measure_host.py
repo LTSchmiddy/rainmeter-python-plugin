@@ -1,8 +1,6 @@
 # A Control Module for RmPython to help manage module imports and other interpreter tasks:
 from __future__ import annotations
-import sys, os
-
-import pickle
+import sys, os, traceback
 
 from PythonLoaderUtils.stdhandler import StdHandler
 from PythonLoaderUtils.meaure_type import MeasureBase
@@ -42,7 +40,7 @@ class MeasureHost:
 
     def _setup_stdout(self, rm: RainmeterW):
         self.out = StdHandler("Py", rm, rm.LOG_NOTICE)
-        self.err = StdHandler("Py", rm, rm.LOG_ERROR)
+        self.err = StdHandler("PyErr", rm, rm.LOG_ERROR)
 
         # Just in case:
         self._old_stdout = sys.stdout
@@ -64,7 +62,9 @@ class MeasureHost:
         # print(f"{self.exec_path=}")
 
         self.mh = ModuleHandler()
-        check_for_pip()
+        
+        if sys.executable.endswith("Rainmeter.exe"):
+            check_for_pip()
 
     def setRm(self, rm):
         self.rm = rm
@@ -98,7 +98,8 @@ class MeasureHost:
             )
 
         except Exception as e:
-            self.rm.RmLog(self.rm.LOG_ERROR, str(e))
+            # self.rm.RmLog(self.rm.LOG_ERROR, str(e))
+            traceback.print_exception(type(e), e, e.__traceback__)
             return None
 
     # Wrappers for measure calls. Used to catch errors and print them to the log.
@@ -109,13 +110,15 @@ class MeasureHost:
         try:
             return m.Reload(rm, maxValue)
         except Exception as e:
-            self.rm.RmLog(self.rm.LOG_ERROR, str(e))
+            # self.rm.RmLog(self.rm.LOG_ERROR, str(e))
+            traceback.print_exception(type(e), e, e.__traceback__)
 
     def callUpdate(self, m: MeasureBase):
         try:
             return m.Update()
         except Exception as e:
-            self.rm.RmLog(self.rm.LOG_ERROR, str(e))
+            # self.rm.RmLog(self.rm.LOG_ERROR, str(e))
+            traceback.print_exception(type(e), e, e.__traceback__)
         return 1.0
 
     def callGetString(
@@ -125,25 +128,29 @@ class MeasureHost:
         try:
             return m.GetString()
         except Exception as e:
-            self.rm.RmLog(self.rm.LOG_ERROR, str(e))
-        return ""
+            # self.rm.RmLog(self.rm.LOG_ERROR, str(e))
+            traceback.print_exception(type(e), e, e.__traceback__)
+            return f"Error: {e}"
 
     def callExecuteBang(self, m: MeasureBase, args):
         try:
             m.ExecuteBang(args)
         except Exception as e:
-            self.rm.RmLog(self.rm.LOG_ERROR, str(e))
+            # self.rm.RmLog(self.rm.LOG_ERROR, str(e))
+            traceback.print_exception(type(e), e, e.__traceback__)
 
     def callFinalize(self, m: MeasureBase):
         try:
             m.Finalize()
         except Exception as e:
-            self.rm.RmLog(self.rm.LOG_ERROR, str(e))
+            # self.rm.RmLog(self.rm.LOG_ERROR, str(e))
+            traceback.print_exception(type(e), e, e.__traceback__)
 
     def callFunc(self, m: MeasureBase, fname: str, args: tuple):
         try:
             # print(args)
             return getattr(m, fname)(*args)
         except Exception as e:
-            self.rm.RmLog(self.rm.LOG_ERROR, str(e))
+            # self.rm.RmLog(self.rm.LOG_ERROR, str(e))
+            traceback.print_exception(type(e), e, e.__traceback__)
             return None

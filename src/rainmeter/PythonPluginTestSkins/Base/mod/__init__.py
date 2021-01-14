@@ -12,7 +12,7 @@ class Measure:
     
     def Reload(self, rm: RainmeterW, maxValue: float):
         global n_instances
-        # n_instances += 1
+        # raise Exception("TB TEST")
         
 
     def Update(self):

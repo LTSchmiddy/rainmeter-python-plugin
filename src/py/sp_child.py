@@ -75,6 +75,15 @@ def spChildMain():
                 content=host.callFunc(measure, request["fname"], request["args"]),
             )
             parentWrite.flush()
+            
+        elif request["type"] == "exit":
+            parentWrite.write(
+                mode="return",
+                content="OK",
+            )
+            parentWrite.close()
+            parentErr.close()
+            sys.exit()
 
         else:
             print(f"Request Type {request['type']} Unknown!")
