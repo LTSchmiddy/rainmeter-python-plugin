@@ -130,6 +130,7 @@ static PyObject *Rainmeter_RmGetSettingsFile(RainmeterObject *self)
 	return PyUnicode_FromWideChar(result, -1);
 }
 
+
 static PyObject *Rainmeter_RmExecute(RainmeterObject *self, PyObject *args)
 {
 	PyObject *command;
@@ -139,6 +140,22 @@ static PyObject *Rainmeter_RmExecute(RainmeterObject *self, PyObject *args)
 	PyMem_Free(commandStr);
 	Py_INCREF(Py_None);
 	return Py_None;
+}
+
+static PyObject *Rainmeter_RmReplaceVariables(RainmeterObject *self, PyObject *args)
+{
+	PyObject *vstr;
+	PyArg_ParseTuple(args, "U", &vstr);
+	wchar_t *commandStr = PyUnicode_AsWideCharString(vstr, NULL);
+	LPCWSTR result = RmReplaceVariables(self->rm, commandStr);
+	PyMem_Free(commandStr);
+
+	if (result == NULL)
+	{
+		Py_INCREF(Py_None);
+		return Py_None;
+	}
+	return PyUnicode_FromWideChar(result, -1);
 }
 
 static PyObject *Rainmeter_RmLog(RainmeterObject *self, PyObject *args)
@@ -162,6 +179,7 @@ static PyMethodDef Rainmeter_methods[] = {
 	{"RmGetSkinName", (PyCFunction)Rainmeter_RmGetSkinName, METH_NOARGS, ""},
 	{"RmGetSettingsFile", (PyCFunction)Rainmeter_RmGetSettingsFile, METH_NOARGS, ""},
 	{"RmExecute", (PyCFunction)Rainmeter_RmExecute, METH_VARARGS, ""},
+	{"RmReplaceVariables", (PyCFunction)Rainmeter_RmReplaceVariables, METH_VARARGS, ""},
 	{"RmLog", (PyCFunction)Rainmeter_RmLog, METH_VARARGS, ""},
 	{NULL}
 };

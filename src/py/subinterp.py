@@ -1,4 +1,4 @@
-import sys, os, pathlib, subprocess, json, textwrap
+import sys, os, pathlib, subprocess, json, textwrap, threading
 from subprocess import Popen, PIPE
 from pathlib import Path
 from typing import Union
@@ -6,6 +6,7 @@ from typing import Union
 import PythonLoaderUtils.anon_func as af
 from PythonLoaderUtils.rm_stub import RainmeterW
 from PythonLoaderUtils.stdhandler import SubInterpStdHandler
+from PythonLoaderUtils.watchdog_timer import WatchdogTimer
 from PythonLoaderUtils.load_module_helper import *
 
 
@@ -20,6 +21,8 @@ class SubInterp:
     # Instance variables:
     proc: subprocess.Popen
     handledDeath: bool
+    
+    readline_timeout = 10
 
     @classmethod
     def get_interp_path(cls) -> Path:
@@ -43,9 +46,6 @@ class SubInterp:
             use_interp_path = self.interp_path
             
         self.handledDeath = False
-
-        # debug_file_path = os.path.join(os.path.dirname(sys.executable), "../debug.txt")
-        # use_debug = os.path.isfile(debug_file_path)
 
         procArgs = [use_interp_path, __file__, modulePath, execfn, log_prefix] + args
         # procArgs = [self.interp_path,  Path(__file__)]
@@ -74,7 +74,13 @@ class SubInterp:
             ).replace("\r", "")
         )
         raise RuntimeError("Python subprocess is dead.")
-
+    
+    
+    def watchdog_kill_proc(self):
+        print(f"ERROR: Subprocess has taken more than {self.readline_timeout} seconds to respond. Killing subprocess to avoid Rainmeter hang...")
+        self.handledDeath = True
+        self.proc.kill()
+        
     def exchange(self, rm: RainmeterW, request: dict):
         if self.proc.poll() is not None:
             return self.handleSubProcessDeath()
@@ -86,67 +92,93 @@ class SubInterp:
         self.proc.stdin.flush()
         # Request has been made. NOW, we start the exchange loop:
 
+        watchdog = WatchdogTimer(self.readline_timeout, callback=self.watchdog_kill_proc, daemon=True)
+        watchdog.start() 
+
         while True:
-            if self.proc.poll() is not None:
-                return self.handleSubProcessDeath()
-
+            watchdog.restart()
+            
+            with watchdog.blocked:
+                if self.proc.poll() is not None:
+                    watchdog.cancel()
+                    return self.handleSubProcessDeath()
+                
             raw = self.proc.stdout.readline().decode("utf8").strip()
+            
+            with watchdog.blocked:
+                if self.proc.poll() is not None:
+                    watchdog.cancel()
+                    return self.handleSubProcessDeath()
+                
+                if len(raw) == 0:
+                    continue
 
-            if len(raw) == 0:
-                continue
+                # print(f"{raw=}")
+                try:
+                    response = json.loads(raw)
+                except json.JSONDecodeError as e:
+                    # print(e)
+                    print(f"{raw=}")
+                    # self.proc.stdin.write(
+                    #     json.dumps({"error": str(e)}).encode("utf8") + b"\n"
+                    # )
+                    # self.proc.stdin.flush()
+                    continue
 
-            # print(f"{raw=}")
-            try:
-                response = json.loads(raw)
-            except json.JSONDecodeError as e:
-                # print(e)
-                print(f"{raw=}")
-                # self.proc.stdin.write(
-                #     json.dumps({"error": str(e)}).encode("utf8") + b"\n"
-                # )
-                # self.proc.stdin.flush()
-                continue
+                if response["mode"] == "print":
+                    # print(f"SP: {response['data']}")
+                    
+                    resp = response['data'].strip()
+                    if resp != "":
+                        print(f"SP: {resp}")
+                    continue
 
-            if response["mode"] == "print":
-                # print(f"SP: {response['data']}")
-                continue
+                elif response["mode"] == "rm_rcall":
+                    # print(response['data'])
 
-            elif response["mode"] == "rm_rcall":
-                # print(response['data'])
+                    result = getattr(rm, response["data"]["func"])(
+                        *response["data"]["args"], **response["data"]["kwargs"]
+                    )
+                    self.proc.stdin.write(
+                        json.dumps({"result": result}).encode("utf8") + b"\n"
+                    )
+                    self.proc.stdin.flush()
+                    continue
 
-                result = getattr(rm, response["data"]["func"])(
-                    *response["data"]["args"], **response["data"]["kwargs"]
-                )
-                self.proc.stdin.write(
-                    json.dumps({"result": result}).encode("utf8") + b"\n"
-                )
-                self.proc.stdin.flush()
-                continue
+                elif response["mode"] == "rm_call":
+                    # print(response['data'])
 
-            elif response["mode"] == "rm_call":
-                # print(response['data'])
+                    getattr(rm, response["data"]["func"])(
+                        *response["data"]["args"], **response["data"]["kwargs"]
+                    )
+                    continue
 
-                getattr(rm, response["data"]["func"])(
-                    *response["data"]["args"], **response["data"]["kwargs"]
-                )
-                continue
-
-            elif response["mode"] == "return":
-                # print(response['data'])
-                return response["data"]
+                elif response["mode"] == "return":
+                    # print(response['data'])
+                    watchdog.cancel()
+                    return response["data"]
 
 
 def childMain(modulePath: Path, execfn: str, log_prefix: str, *args):
     # to enable the VSCode debugging, create 'debug.txt' in the cwd
 
-    debug_file_path = os.path.join(os.path.dirname(sys.executable), "debug.txt")
-    use_debug = os.path.isfile(debug_file_path)
-    # if use_debug:
+    debug_file_path = None
+    use_debug = False
+    
+    if os.path.isfile(os.path.join(os.path.dirname(sys.executable), "debug.txt")):
+        debug_file_path = os.path.join(os.path.dirname(sys.executable), "debug.txt")
+        use_debug = True
+        
+    if os.path.isfile("./debug.txt"):
+        debug_file_path = "./debug.txt"
+        use_debug = True
+        
 
     if use_debug:
         import ptvsd
-
-        port = 3000
+        db_file = open(debug_file_path, 'r')
+        port = int(db_file.read())
+        db_file.close()
         ptvsd.enable_attach(address=("127.0.0.1", port))
         ptvsd.wait_for_attach()
 

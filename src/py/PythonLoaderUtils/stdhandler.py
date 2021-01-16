@@ -44,22 +44,35 @@ class SubInterpStdHandler:
 
         self.load_imports()
 
+    def running_on_main(self):
+        if self._threading.current_thread() != self._threading.main_thread():
+            return False
+        elif (
+            type(self._multiprocessing.current_process())
+            == self._multiprocessing.Process
+        ):
+            return False
+        
+        return True
+
     def write(self, content: str, mode: str = "print", raw: bool = False):
         if mode != "print":
             if self._threading.current_thread() != self._threading.main_thread():
                 raise self._threading.ThreadError(
-                    "Non-print write modes can pnly be used from the main thread."
+                    "Non-print write modes can only be used from the main thread."
                 )
             elif (
                 type(self._multiprocessing.current_process())
                 == self._multiprocessing.Process
             ):
                 raise self._multiprocessing.ProcessError(
-                    "Non-print write modes can pnly be used from the main process."
+                    "Non-print write modes can only be used from the main process."
                 )
 
         else:
             self.logFile.write(content)
+            if not self.running_on_main():
+                return
 
         out = None
         if raw:
@@ -71,6 +84,7 @@ class SubInterpStdHandler:
 
             out = json.dumps(outDict) + "\n"
         self.oldStdout.write(out)
+        
         if mode != "print" and not self.printOnly:
             self.logFile.write(out)
 

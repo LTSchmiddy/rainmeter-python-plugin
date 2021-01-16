@@ -18,4 +18,4 @@ try:
     
 except Exception as e:
     traceback.print_exception(type(e), e, e.__traceback__)
-    input("Press Enter to close...")
+input("Press Enter to close...")

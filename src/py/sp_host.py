@@ -131,7 +131,7 @@ class SpHost:
             use_interp_path=minfo.abs_venv_exec
         )
         
-        minfo.save_module_info()
+        # minfo.save_module_info()
         
         self.mod_si[minfo.active_siKey] = retVal
         return retVal
@@ -218,7 +218,7 @@ class SpHost:
 
     def callUpdate(self, m: MeasureRef):
         if m.mId is None:
-            return 1.0
+            return -1.0
 
         try:
             return self.sp_request(
