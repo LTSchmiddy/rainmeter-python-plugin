@@ -8,7 +8,10 @@ from threading import Event, Lock, Thread
 from time import monotonic
 
 class WatchdogTimer(Thread):
-    """Run *callback* in *timeout* seconds unless the timer is restarted."""
+    """
+    Run *callback* in *timeout* seconds unless the timer is restarted.
+    Used by subinterp to prevent permanent hanging.
+    """
 
     def __init__(self, timeout, callback, *args, timer=monotonic, **kwargs):
         super().__init__(**kwargs)
