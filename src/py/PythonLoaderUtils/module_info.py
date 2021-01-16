@@ -148,5 +148,7 @@ class ModuleInfo(JsonClass):
             subprocess.run(
                 pip_args
             )
-            self.update_venv = False
+            
+        self.update_venv = False
+        self.save_module_info()
         

@@ -83,7 +83,7 @@ def spChildMain():
             )
             parentWrite.close()
             parentErr.close()
-            sys.exit()
+            sys.exit(0)
 
         else:
             print(f"Request Type {request['type']} Unknown!")

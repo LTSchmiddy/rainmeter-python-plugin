@@ -78,7 +78,7 @@ PLUGIN_EXPORT void Reload(void* data, void* rm, double* maxValue)
 		pyInfo.global_rm = rainmeterObject;
 	}
 
-	if (measure->measureIdObject == NULL ||  measure->measureIdObject == Py_None)	{
+	if (measure->measureIdObject == NULL)	{
 		if (rainmeterObject == NULL){
 			rainmeterObject = CreateRainmeterObject(rm);
 		}
@@ -126,8 +126,9 @@ PLUGIN_EXPORT double Update(void* data)
 	Measure *measure = (Measure*) data;
 	if (measure->measureIdObject == NULL)
 	{
-		return 0.0;
+		return -1.0;
 	}
+
 	// PyEval_RestoreThread(mainThreadState);
 	PyEval_RestoreThread(measure->mainThreadState);
 	// PyObject *resultObj = PyObject_CallMethod(measure->measureObject, "Update", NULL);

@@ -54,6 +54,9 @@ class RainmeterSP:
 
     def RmExecute(self, commandStr: str):
         return rm_call("RmExecute", commandStr)
+    
+    def RmReplaceVariables(self, vstr: str):
+        return rm_rcall("RmReplaceVariables", vstr)
 
     def RmLog(self, level: int, message: str):
         return rm_call("RmLog", level, message)

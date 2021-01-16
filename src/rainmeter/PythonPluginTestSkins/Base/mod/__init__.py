@@ -1,9 +1,8 @@
-import sys
+import sys, time
 
 from PythonLoaderUtils.rm_stub import RainmeterW
 
 n_instances = 0
-import github
 
 class Measure:
     def __init__(self):
@@ -16,6 +15,7 @@ class Measure:
         
 
     def Update(self):
+        time.sleep(30)
         return 1.0
 
     def GetString(self):
