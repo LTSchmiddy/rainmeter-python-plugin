@@ -18,11 +18,14 @@ class SubInterp:
     # Class variables:
     interp_path: Path = ""
 
+    
+    popen_args: dict
     # Instance variables:
     proc: subprocess.Popen
     handledDeath: bool
     
     readline_timeout = 10
+    watchdog_use_violence: bool = False
 
     @classmethod
     def get_interp_path(cls) -> Path:
@@ -42,6 +45,7 @@ class SubInterp:
         *,
         use_interp_path=None
     ):
+        self.watchdog_use_violence = False
         if use_interp_path is None:
             use_interp_path = self.interp_path
             
@@ -50,6 +54,7 @@ class SubInterp:
         procArgs = [use_interp_path, __file__, modulePath, execfn, log_prefix] + args
         # procArgs = [self.interp_path,  Path(__file__)]
         print(procArgs)
+        self.popen_args = popen_args
         self.proc = subprocess.Popen(
             procArgs, stdin=PIPE, stdout=PIPE, stderr=PIPE, **popen_args
         )
@@ -77,7 +82,17 @@ class SubInterp:
     
     
     def watchdog_kill_proc(self):
-        print(f"ERROR: Subprocess has taken more than {self.readline_timeout} seconds to respond. Killing subprocess to avoid Rainmeter hang...")
+        if \
+            not self.watchdog_use_violence \
+            and (
+                'cwd' in self.popen_args \
+                and pathlib.Path(self.popen_args['cwd']).joinpath("debug.txt").exists()
+            ) \
+        :
+            print("In debug mode. Watchdog will not terminate.")
+            return 
+        
+        print(f"WATCHDOG ERROR: Subprocess has taken more than {self.readline_timeout} seconds to respond. Killing subprocess to avoid Rainmeter hang...")
         self.handledDeath = True
         self.proc.kill()
         
@@ -104,6 +119,8 @@ class SubInterp:
                     return self.handleSubProcessDeath()
                 
             raw = self.proc.stdout.readline().decode("utf8").strip()
+            
+            attempting_exit = False
             
             with watchdog.blocked:
                 if self.proc.poll() is not None:
@@ -157,6 +174,16 @@ class SubInterp:
                     # print(response['data'])
                     watchdog.cancel()
                     return response["data"]
+                
+                elif response["mode"] == "exit":
+                    self.watchdog_use_violence = True
+                    attempting_exit = True
+            
+            if attempting_exit:
+                self.proc.wait()
+                return response["data"]
+                
+
 
 
 def childMain(modulePath: Path, execfn: str, log_prefix: str, *args):

@@ -77,9 +77,10 @@ def spChildMain():
             parentWrite.flush()
             
         elif request["type"] == "exit":
+            print("Trying to exit...")
             parentWrite.write(
-                mode="return",
-                content="OK",
+                mode="exit",
+                content=None,
             )
             parentWrite.close()
             parentErr.close()
@@ -100,17 +101,17 @@ def spChildMain():
 
 
 # Used for testing!!
-def spChildMainTEST():
-    print("Starting SP Mainloop")
+# def spChildMainTEST():
+#     print("Starting SP Mainloop")
 
-    while True:
-        request = input()
+#     while True:
+#         request = input()
 
-        parentWrite.write(
-            mode="rm_call",
-            content={"func": "RmLog", "args": (4, "RM_CALL WORKS"), "kwargs": {}},
-        )
+#         parentWrite.write(
+#             mode="rm_call",
+#             content={"func": "RmLog", "args": (4, "RM_CALL WORKS"), "kwargs": {}},
+#         )
 
-        result = input()
-        # print(result)
-        parentWrite.write(mode="return", content=result)
+#         result = input()
+#         # print(result)
+#         parentWrite.write(mode="return", content=result)
