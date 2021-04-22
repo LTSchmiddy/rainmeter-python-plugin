@@ -2,3 +2,5 @@
 /build-*/
 /Rainmeter-Testing/
 **/__pycache__/
+
+/old/**
