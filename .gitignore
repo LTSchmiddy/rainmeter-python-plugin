@@ -4,3 +4,9 @@
 **/__pycache__/
 
 /old/**
+
+
+# UserFiles
+/CMakeUserPresets.json
+/mcppt_settings.json
+/mcppt-toolchain.cmake
