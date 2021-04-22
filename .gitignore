@@ -6,7 +6,7 @@
 /old/**
 
 
-# UserFiles
+# Local Files, from MCPPT.
 /CMakeUserPresets.json
 /mcppt_settings.json
 /mcppt-toolchain.cmake
