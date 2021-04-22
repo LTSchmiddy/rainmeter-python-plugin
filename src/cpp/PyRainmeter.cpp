@@ -164,8 +164,13 @@ static PyObject *Rainmeter_RmLog(RainmeterObject *self, PyObject *args)
 	PyObject *message;
 	PyArg_ParseTuple(args, "iU", &level, &message);
 	wchar_t *messageStr = PyUnicode_AsWideCharString(message, NULL);
-	RmLog(self->rm, level, messageStr);
-	PyMem_Free(messageStr);
+	if (messageStr != NULL) {
+		RmLog(self->rm, level, messageStr);
+		PyMem_Free(messageStr);
+	} else {
+		RmLog(self->rm, LOG_ERROR, L"static PyObject *Rainmeter_RmLog: messageStr = NULL");
+		// PyMem_Free(messageStr);
+	}
 	Py_INCREF(Py_None);
 	return Py_None;
 }
