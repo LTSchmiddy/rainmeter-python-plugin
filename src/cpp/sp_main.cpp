@@ -33,7 +33,6 @@
 using namespace std;
 using namespace std::filesystem;
 
-
 Measure::Measure() {
 	measureIdObject = NULL;
 	getStringResult = NULL;
@@ -245,9 +244,14 @@ PLUGIN_EXPORT void Finalize(void* data)
 			PyErr_Print();
 			PyErr_Clear();
 		}
-	}
+		Py_DECREF(pyInfo.loader);
 
-	PyEval_SaveThread();
+		Py_Finalize();
+		pyInfo.plugin_initialized = false;
+	}
+	else {
+		PyEval_SaveThread();
+	}
 	//Py_Finalize(); // Testing this without killing the interpreter to reset its status
 }
 
