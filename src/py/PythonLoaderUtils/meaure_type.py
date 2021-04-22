@@ -1,5 +1,8 @@
+from .rm_stub import RainmeterW
 class MeasureBase:
     _num_instances: int = 0
+    last_rm: RainmeterW
+    
     @classmethod
     def get_num_instances(cls) -> int:
         return cls._num_instances
@@ -19,14 +22,15 @@ class MeasureBase:
     
     def __init__(self):
         self.increase_instances()
+        self.last_rm = None
 
-    def Reload(self, rm, maxValue):
-        pass
+    def Reload(self, rm: RainmeterW, maxValue: float):
+        self.last_rm = rm
 
-    def Update(self):
+    def Update(self) -> float:
         return 1.0
 
-    def GetString(self):
+    def GetString(self) -> str:
         return ""
 
     def ExecuteBang(self, args):
