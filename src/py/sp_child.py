@@ -57,7 +57,7 @@ def spChildMain():
 
         elif request["type"] == "callExecuteBang":
             measure = measureDict[int(request["mId"])]
-            host.callExecuteBang(measure)
+            host.callExecuteBang(measure, request["args"])
             parentWrite.write(mode="return", content=None)
             parentWrite.flush()
 
