@@ -181,8 +181,9 @@ class SubInterp:
             
             if attempting_exit:
                 self.proc.wait()
+                watchdog.cancel()
                 return response["data"]
-                
+
 
 
 
@@ -213,6 +214,9 @@ def childMain(modulePath: Path, execfn: str, log_prefix: str, *args):
     # No need to store backup references elsewhere.
 
     home_dir = pathlib.Path(".")
+    if sys.prefix == sys.base_prefix:
+        home_dir = pathlib.Path.home()
+        
     log_dir = home_dir.joinpath(".rm_PyPluginSp_logs")
 
     if not log_dir.exists():
