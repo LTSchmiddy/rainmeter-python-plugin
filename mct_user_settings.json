@@ -1,0 +1,49 @@
+{
+    "common": {
+        "template_dir": "D:\\tools\\mct\\new_cmake_templates"
+    },
+    "cmake": {
+        "exec": "cmake"
+    },
+    "vcpkg": {
+        "exec": "vcpkg",
+        "use_external": false,
+        "path": "D:\\tools\\mct\\vcpkg",
+        "repo_uri": "https://github.com/microsoft/vcpkg.git",
+        "disable_metrics": true,
+        "has_been_installed": true
+    },
+    "git": {
+        "exec": "git"
+    },
+    "toolchain": {
+        "use_global": false,
+        "use_local": true,
+        "user_toolchain_values": {
+            "RAINMETER_API_ROOT": "\"D:/libraries/common/rainmeter-plugin-sdk/API/\"",
+            "RAINMETER_API_LIB": "\"D:/libraries/common/rainmeter-plugin-sdk/API/x64/Rainmeter.lib\""
+        }
+    },
+    "deploy.py": {
+        "debug": {
+            "plugin-build-out-path": "./build-Debug/bin/",
+            "plugin-loader-scripts-path": "./src/py/",
+            "rainmeter-plugin-path": "./Rainmeter-Testing/Plugins/",
+            "rainmeter-root-path": "./Rainmeter-Testing",
+            "python-home-bundle-path": "./assets/PythonHome",
+            "python-home-bundle-dest": "./Rainmeter-Testing/PythonHome",
+            "rainmeter-skin-src-path": "./src/rainmeter",
+            "rainmeter-skin-dest-path": "./Rainmeter-Testing/Skins"
+        },
+        "release": {
+            "plugin-build-out-path": "./build-Release/bin/",
+            "plugin-loader-scripts-path": "./src/py/",
+            "rainmeter-plugin-path": "./bin/Plugins/",
+            "rainmeter-root-path": "./bin",
+            "python-home-bundle-path": "./assets/PythonHome",
+            "python-home-bundle-dest": "./bin/PythonHome",
+            "rainmeter-skin-src-path": "./src/rainmeter",
+            "rainmeter-skin-dest-path": "./bin/Skins"
+        }
+    }
+}

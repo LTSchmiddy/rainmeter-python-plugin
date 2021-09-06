@@ -1,0 +1,8 @@
+{
+    "packages": [],
+    "required_user_toolchain_values": [
+        "RAINMETER_API_ROOT",
+        "RAINMETER_API_LIB"
+    ],
+    "shared_toolchain_files": []
+}

@@ -1,0 +1,5 @@
+{
+    "root": "mod",
+    "requirements": "requirements.txt",
+    "working_directory": "./"
+}
